@@ -13,10 +13,12 @@ def main():
     b = 1.5 # indukcja magnetyczna [T]
     U = 50000 # napięcie [mV]
     d = 90e-6 # szerokość przerwy [m]
-    r = 0.05 #promień cyklotronu [m]
+    r = 0.05 # promień cyklotronu [m]
+    t0 = 0
+    dt = 5e-12
     proton = Czastka(poz0, v0, mp, qp)
     cyklotron = Cyklotron(b, U, d, r)
-    cyklotron.symulacja(proton, 0, 5e-12)
+    cyklotron.symulacja(proton, t0, dt)
 
 class Czastka:
     def __init__(self, poz, v, m, q):
@@ -41,7 +43,6 @@ class Cyklotron:
         m = czastka.m
         q = czastka.q
         w = q * self.b / m # częstość cyklotronowa
-
         pozx = [poz[0]]
         pozy = [poz[1]]
         count = 0
@@ -60,6 +61,7 @@ class Cyklotron:
             poz = poz + v * dt
             pozx.append(poz[0])
             pozy.append(poz[1])
+
             t = t + dt
             count += 1
 
@@ -68,27 +70,29 @@ class Cyklotron:
         print("Czas trwania symulacji:", t, "s")
 
         fig, ax = plt.subplots()
+
+        ax.set_aspect('equal')
+        ax.set_xlim([-1.2 * self.r, 1.2 * self.r])
+        ax.set_ylim([-1.2 * self.r, 1.2 * self.r])
+        ax.set_xlabel("X (m)")
+        ax.set_ylabel("Y (m)")
+
         plt.subplots_adjust(bottom=0.15)
+
         theta_offset = (self.d / (2 * self.r)) * (180 / np.pi)
         arc1 = Arc((0, 0), 2 * self.r, 2 * self.r, angle=0, theta1=90 + theta_offset, theta2=270 - theta_offset, color='black', lw=1.5)
         arc2 = Arc((0, 0), 2 * self.r, 2 * self.r, angle=0, theta1=-90 + theta_offset, theta2=90 - theta_offset, color='black', lw=1.5)
         ax.add_patch(arc1)
         ax.add_patch(arc2)
+
         x1 = self.r * np.cos(np.radians(90 + theta_offset))
         y1 = self.r * np.sin(np.radians(90 + theta_offset))
         x2 = self.r * np.cos(np.radians(-90 + theta_offset))
         y2 = self.r * np.sin(np.radians(-90 + theta_offset))
-        ax.plot([-x1, -x2], [y1, y2], color='black', lw=0.1)
-        ax.plot([x1, x2], [y1, y2], color='black', lw=0.1)
+        ax.plot([-x1, x2], [y1, y2], color='black', lw=0.1)
+        ax.plot([x1, -x2], [y1, y2], color='black', lw=0.1)
 
-        ax.set_aspect('equal')
-        ax.set_xlim([-1.2 * self.r, 1.2 * self.r])
-        ax.set_ylim([-1.2 * self.r, 1.2 * self.r])
-
-        ax.set_xlabel("X (m)")
-        ax.set_ylabel("Y (m)")
-
-        trace, = ax.plot([], [], lw=0.5)
+        trace, = ax.plot([], [], lw=1)
         running = [True]
 
         def toggle_animation(event):
@@ -98,11 +102,9 @@ class Cyklotron:
                 ani.event_source.start()
             running[0] = not running[0]
 
-        # 🔹 Tworzenie przycisku "Start/Stop"
         ax_button = plt.axes([0.8, 0.1, 0.1, 0.075])
         button = Button(ax_button, 'Start/Stop')
         button.on_clicked(toggle_animation)
-
 
         ax_slider = plt.axes([0.2, 0.05, 0.55, 0.03])
         slider = Slider(ax_slider, 'Czas', 0, count-1, valinit=0, valstep=1)
