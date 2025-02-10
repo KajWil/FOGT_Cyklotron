@@ -14,11 +14,12 @@ def main():
     U = 50000 # napięcie [mV]
     d = 90e-6 # szerokość przerwy [m]
     r = 0.05 # promień cyklotronu [m]
-    t0 = 0
-    dt = 5e-12
+    t0 = 0 # początkowy czas symulacji
+    dt = 5e-12 # co ile liczone są parametry cząstki
+    maxs = 20 # maksymalna liczba skoków
     proton = Czastka(poz0, v0, mp, qp)
     cyklotron = Cyklotron(b, U, d, r)
-    cyklotron.symulacja(proton, t0, dt)
+    cyklotron.symulacja(proton, t0, dt, maxs)
 
 class Czastka:
     def __init__(self, poz, v, m, q):
@@ -37,7 +38,7 @@ class Cyklotron:
         self.r = r
         self.E = np.array([U / d, 0, 0])
 
-    def symulacja(self, czastka, t, dt):
+    def symulacja(self, czastka, t, dt, maxs):
         poz = czastka.poz
         v = czastka.v
         m = czastka.m
@@ -46,29 +47,33 @@ class Cyklotron:
         pozx = [poz[0]]
         pozy = [poz[1]]
         count = 0
-
-        while np.linalg.norm(poz) < 1.5 * self.r:
+        skoki = 0
+        flaga = 0
+        while np.linalg.norm(poz) < 1.5 * self.r and skoki <= maxs:
             F = np.array([0, 0, 0])
             if np.absolute(poz[0]) < self.d / 2:
                 F = q * self.E * np.cos(w * t)
+                if flaga == 1:
+                    skoki += 1
+                    flaga = 0
             elif np.linalg.norm(poz) > self.r:
                 F = 0
             else:
                 F = q * np.cross(v, self.B)
+                flaga = 1
 
             a = F / m
             v = v + a * dt
             poz = poz + v * dt
             pozx.append(poz[0])
             pozy.append(poz[1])
-
             t = t + dt
             count += 1
 
         vk = np.linalg.norm(v)
         print("Końcowa prędkość:", vk, "m/s")
         print("Czas trwania symulacji:", t, "s")
-
+        print(skoki)
         fig, ax = plt.subplots()
 
         ax.set_aspect('equal')
